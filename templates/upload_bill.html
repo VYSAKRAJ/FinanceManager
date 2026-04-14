@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}Upload Bill – CardIQ{% endblock %}
+{% block page_title %}Upload Bill{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+  <h4 class="fw-bold mb-0"><i class="bi bi-upload me-2 text-info"></i>Upload Credit Card Bill</h4>
+  <p class="text-muted small mb-0">Import transactions from a CSV file.</p>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        {% if not cards %}
+        <div class="alert alert-warning">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          Please <a href="{{ url_for('add_card') }}">add a card</a> first.
+        </div>
+        {% else %}
+        <form method="POST" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Select Card <span class="text-danger">*</span></label>
+            <select class="form-select" name="card_id" required>
+              <option value="">Choose card…</option>
+              {% for c in cards %}
+              <option value="{{ c.id }}">{{ c.card_name }} – {{ c.bank_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">CSV File <span class="text-danger">*</span></label>
+            <div class="upload-dropzone" id="dropzone">
+              <i class="bi bi-file-earmark-spreadsheet fs-1 text-muted"></i>
+              <p class="mt-2 mb-1 fw-semibold">Drag & drop your CSV here</p>
+              <p class="text-muted small mb-3">or click to browse</p>
+              <input type="file" name="file" id="file-input" accept=".csv,.txt" class="d-none" required>
+              <button type="button" class="btn btn-outline-info" onclick="document.getElementById('file-input').click()">
+                <i class="bi bi-folder-open me-1"></i>Browse File
+              </button>
+              <p class="mt-2 small text-muted" id="file-name">No file selected</p>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-info text-white px-4">
+            <i class="bi bi-cloud-upload me-1"></i>Import Transactions
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Format guide -->
+  <div class="col-lg-5">
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-info-circle me-2 text-primary"></i>Expected CSV Format
+      </div>
+      <div class="card-body">
+        <p class="small text-muted mb-2">Your CSV should have headers. Supported column names:</p>
+        <table class="table table-sm small">
+          <thead class="table-light"><tr><th>Column</th><th>Accepted Names</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Date</strong></td><td>Date, date, Transaction Date, transaction_date</td></tr>
+            <tr><td><strong>Merchant</strong></td><td>Merchant, merchant, Description, description</td></tr>
+            <tr><td><strong>Amount</strong></td><td>Amount, amount, Debit, debit</td></tr>
+            <tr><td><strong>Category</strong></td><td>Category, category (optional)</td></tr>
+          </tbody>
+        </table>
+        <p class="small text-muted mb-1">Supported date formats:</p>
+        <ul class="small text-muted">
+          <li>YYYY-MM-DD (e.g. 2024-03-15)</li>
+          <li>DD/MM/YYYY (e.g. 15/03/2024)</li>
+          <li>MM/DD/YYYY (e.g. 03/15/2024)</li>
+          <li>DD-MM-YYYY (e.g. 15-03-2024)</li>
+          <li>DD Mon YYYY (e.g. 15 Mar 2024)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-download me-2 text-success"></i>Sample CSV
+      </div>
+      <div class="card-body">
+        <pre class="bg-light rounded p-2 small mb-2">Date,Merchant,Amount,Category
+2024-03-01,Zomato,450.00,dining
+2024-03-02,Amazon,1299.00,shopping
+2024-03-03,Shell Petrol,3000.00,fuel
+2024-03-05,BigBasket,1850.00,grocery
+2024-03-07,Netflix,649.00,entertainment</pre>
+        <button class="btn btn-sm btn-outline-success" onclick="downloadSample()">
+          <i class="bi bi-download me-1"></i>Download Sample
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const fileInput = document.getElementById('file-input');
+const fileName  = document.getElementById('file-name');
+const dropzone  = document.getElementById('dropzone');
+
+if (fileInput) {
+  fileInput.addEventListener('change', () => {
+    fileName.textContent = fileInput.files[0]?.name || 'No file selected';
+  });
+}
+if (dropzone) {
+  ['dragover','dragenter'].forEach(ev =>
+    dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('dragover'); }));
+  ['dragleave','drop'].forEach(ev =>
+    dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); }));
+  dropzone.addEventListener('drop', e => {
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      fileInput.files = dt.files;
+      fileName.textContent = file.name;
+    }
+  });
+}
+
+function downloadSample() {
+  const csv = `Date,Merchant,Amount,Category
+2024-03-01,Zomato,450.00,dining
+2024-03-02,Amazon,1299.00,shopping
+2024-03-03,Shell Petrol,3000.00,fuel
+2024-03-05,BigBasket,1850.00,grocery
+2024-03-07,Netflix,649.00,entertainment
+2024-03-10,Uber,380.00,travel
+2024-03-12,Apollo Pharmacy,520.00,healthcare
+2024-03-15,Jio Recharge,239.00,utilities`;
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'sample_transactions.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}

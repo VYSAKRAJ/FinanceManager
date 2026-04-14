@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Add Statement – CardIQ{% endblock %}
+{% block page_title %}Add Statement{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+  <h4 class="fw-bold mb-0">
+    <i class="bi bi-file-earmark-text-fill me-2 text-secondary"></i>Add Statement
+  </h4>
+  <p class="text-muted small mb-0">Record a credit card billing statement for payment tracking.</p>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        {% if not cards %}
+        <div class="alert alert-warning">
+          Please <a href="{{ url_for('add_card') }}">add a card</a> first.
+        </div>
+        {% else %}
+        <form method="POST" novalidate>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Card <span class="text-danger">*</span></label>
+            <select class="form-select" name="card_id" required>
+              <option value="">Select card…</option>
+              {% for c in cards %}
+              <option value="{{ c.id }}"
+                {{ 'selected' if preselect and preselect == c.id else '' }}>
+                {{ c.card_name }} – {{ c.bank_name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Statement Date <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" name="statement_date"
+                     value="{{ today }}" required>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Payment Due Date <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" name="due_date" id="due-date-inp" required>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Total Amount (₹) <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text">₹</span>
+                <input type="number" class="form-control" name="total_amount"
+                       min="0.01" step="0.01" placeholder="0.00" required>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Minimum Payment (₹)</label>
+              <div class="input-group">
+                <span class="input-group-text">₹</span>
+                <input type="number" class="form-control" name="minimum_payment"
+                       min="0" step="0.01" placeholder="0.00">
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Notes (optional)</label>
+            <textarea class="form-control" name="notes" rows="2"
+                      placeholder="Any remarks…"></textarea>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-secondary px-4">
+              <i class="bi bi-floppy2 me-1"></i>Save Statement
+            </button>
+            <a href="{{ request.referrer or url_for('notifications') }}"
+               class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-fill due date when card is selected
+const cardSel = document.querySelector('select[name="card_id"]');
+const dueDateInp = document.getElementById('due-date-inp');
+const cardDueDays = {
+  {% for c in cards %}
+  {{ c.id }}: {{ c.payment_due_day }},
+  {% endfor %}
+};
+if (cardSel && dueDateInp) {
+  cardSel.addEventListener('change', function() {
+    const dueDay = cardDueDays[this.value];
+    if (dueDay) {
+      const today = new Date();
+      let y = today.getFullYear(), m = today.getMonth() + 1;
+      // Move to next month if we're past the due day
+      if (today.getDate() >= dueDay) { m++; if (m > 12) { m = 1; y++; } }
+      const dd = String(Math.min(dueDay, new Date(y, m, 0).getDate())).padStart(2,'0');
+      const mm = String(m).padStart(2,'0');
+      dueDateInp.value = `${y}-${mm}-${dd}`;
+    }
+  });
+  {% if preselect %}cardSel.dispatchEvent(new Event('change'));{% endif %}
+}
+</script>
+{% endblock %}

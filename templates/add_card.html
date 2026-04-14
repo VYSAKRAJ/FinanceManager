@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit' if card else 'Add' }} Card – CardIQ{% endblock %}
+{% block page_title %}{{ 'Edit' if card else 'Add' }} Card{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+  <h4 class="fw-bold mb-0">
+    <i class="bi bi-{{ 'pencil-square' if card else 'credit-card-2-front' }} me-2 text-primary"></i>
+    {{ 'Edit Card' if card else 'Add New Card' }}
+  </h4>
+</div>
+
+<form method="POST" novalidate>
+<div class="row g-4">
+
+  <!-- Card Preview -->
+  <div class="col-md-4 order-md-2">
+    <div class="card shadow-sm sticky-top" style="top:80px;">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-eye me-2"></i>Preview
+      </div>
+      <div class="card-body">
+        <div class="credit-card-widget" id="card-preview"
+             style="background: linear-gradient(135deg, {{ card.card_color if card else '#2c3e50' }}, {{ card.card_color if card else '#2c3e50' }}99);">
+          <div class="card-chip"><i class="bi bi-cpu-fill"></i></div>
+          <div class="card-number" id="prev-number">**** **** **** {{ card.card_number_last4 if card and card.card_number_last4 else '••••' }}</div>
+          <div class="card-footer-row">
+            <div>
+              <div class="card-label">Card Name</div>
+              <div class="card-value" id="prev-name">{{ card.card_name if card else 'Card Name' }}</div>
+            </div>
+            <div class="text-end">
+              <div class="card-label">Bank</div>
+              <div class="card-value" id="prev-bank">{{ card.bank_name if card else 'Bank' }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="col-md-8 order-md-1">
+
+    <!-- Basic Info -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-info-circle me-2 text-primary"></i>Card Information
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Card Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="card_name" id="inp-name"
+                   value="{{ card.card_name if card else '' }}" placeholder="e.g. HDFC Regalia" required>
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Bank Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="bank_name" id="inp-bank"
+                   value="{{ card.bank_name if card else '' }}" placeholder="e.g. HDFC Bank" required>
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Last 4 Digits</label>
+            <input type="text" class="form-control" name="card_number_last4" id="inp-last4"
+                   value="{{ card.card_number_last4 if card else '' }}"
+                   maxlength="4" placeholder="1234">
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Card Type</label>
+            <select class="form-select" name="card_type">
+              {% for ctype in ['Visa', 'Mastercard', 'Amex', 'RuPay', 'Diners Club'] %}
+              <option value="{{ ctype }}"
+                {{ 'selected' if card and card.card_type == ctype else '' }}>{{ ctype }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Credit Limit (₹)</label>
+            <input type="number" class="form-control" name="credit_limit" min="0" step="1000"
+                   value="{{ card.credit_limit if card else '' }}" placeholder="200000">
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Annual Fee (₹)</label>
+            <input type="number" class="form-control" name="annual_fee" min="0" step="100"
+                   value="{{ card.annual_fee if card else '0' }}" placeholder="0">
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Billing Cycle Start (Day)</label>
+            <input type="number" class="form-control" name="billing_cycle_start" min="1" max="31"
+                   value="{{ card.billing_cycle_start if card else '1' }}" placeholder="1">
+            <div class="form-text">Day of the month your billing cycle starts.</div>
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Payment Due Day</label>
+            <input type="number" class="form-control" name="payment_due_day" min="1" max="31"
+                   value="{{ card.payment_due_day if card else '25' }}" placeholder="25">
+            <div class="form-text">Day of the month payment is due.</div>
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Card Color</label>
+            <div class="d-flex align-items-center gap-2">
+              <input type="color" class="form-control form-control-color" name="card_color" id="inp-color"
+                     value="{{ card.card_color if card else '#2c3e50' }}">
+              <div class="flex-grow-1">
+                <div class="d-flex flex-wrap gap-1">
+                  {% for clr in ['#2c3e50','#1a237e','#4a148c','#880e4f','#b71c1c','#e65100','#1b5e20','#006064','#37474f'] %}
+                  <div class="color-swatch" style="background:{{ clr }}"
+                       onclick="setCardColor('{{ clr }}')"></div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Notes</label>
+            <textarea class="form-control" name="notes" rows="2"
+                      placeholder="e.g. Benefits, lounge access, etc.">{{ card.notes if card else '' }}</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reward Rates -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-stars me-2 text-warning"></i>Cashback / Reward Rates (%)
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          Enter the cashback or reward percentage your card gives for each spending category.
+          Use <strong>1%</strong> as the default if unsure.
+        </p>
+        <div class="row g-3">
+          {% set reward_fields = [
+            ('reward_dining',        'Dining & Food',     'cup-hot-fill',          card.reward_dining if card else 1),
+            ('reward_travel',        'Travel',            'airplane-fill',          card.reward_travel if card else 1),
+            ('reward_grocery',       'Grocery',           'cart-fill',              card.reward_grocery if card else 1),
+            ('reward_fuel',          'Fuel',              'fuel-pump-fill',         card.reward_fuel if card else 1),
+            ('reward_entertainment', 'Entertainment',     'film',                   card.reward_entertainment if card else 1),
+            ('reward_shopping',      'Shopping',          'bag-fill',               card.reward_shopping if card else 1),
+            ('reward_utilities',     'Utilities',         'lightning-charge-fill',  card.reward_utilities if card else 1),
+            ('reward_healthcare',    'Healthcare',        'heart-pulse-fill',       card.reward_healthcare if card else 1),
+            ('reward_education',     'Education',         'book-fill',              card.reward_education if card else 1),
+            ('reward_other',         'Other',             'three-dots',             card.reward_other if card else 1),
+          ] %}
+          {% for fname, label, icon, val in reward_fields %}
+          <div class="col-6 col-md-4">
+            <label class="form-label small fw-semibold">
+              <i class="bi bi-{{ icon }} me-1"></i>{{ label }}
+            </label>
+            <div class="input-group input-group-sm">
+              <input type="number" class="form-control" name="{{ fname }}"
+                     min="0" max="100" step="0.5" value="{{ val }}" required>
+              <span class="input-group-text">%</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary px-4">
+        <i class="bi bi-{{ 'floppy2' if card else 'plus-lg' }} me-1"></i>
+        {{ 'Save Changes' if card else 'Add Card' }}
+      </button>
+      <a href="{{ url_for('card_detail', card_id=card.id) if card else url_for('cards') }}"
+         class="btn btn-outline-secondary">Cancel</a>
+    </div>
+
+  </div>
+</div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function setCardColor(color) {
+  document.getElementById('inp-color').value = color;
+  updatePreview();
+}
+function updatePreview() {
+  const name  = document.getElementById('inp-name').value  || 'Card Name';
+  const bank  = document.getElementById('inp-bank').value  || 'Bank';
+  const last4 = document.getElementById('inp-last4').value || '••••';
+  const color = document.getElementById('inp-color').value;
+
+  document.getElementById('prev-name').textContent   = name;
+  document.getElementById('prev-bank').textContent   = bank;
+  document.getElementById('prev-number').textContent = `**** **** **** ${last4.slice(-4)}`;
+  document.getElementById('card-preview').style.background =
+    `linear-gradient(135deg, ${color}, ${color}99)`;
+}
+['inp-name','inp-bank','inp-last4','inp-color'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', updatePreview);
+});
+</script>
+{% endblock %}

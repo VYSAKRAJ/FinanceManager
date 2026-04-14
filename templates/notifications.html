@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+{% block title %}Payment Alerts – CardIQ{% endblock %}
+{% block page_title %}Payment Alerts{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-bold mb-0"><i class="bi bi-bell-fill me-2 text-danger"></i>Payment Alerts</h4>
+    <p class="text-muted small mb-0">Track all credit card payment due dates.</p>
+  </div>
+  <div class="d-flex gap-2">
+    {% if overdue_count > 0 %}
+    <span class="badge bg-danger fs-6 px-3 py-2">
+      <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ overdue_count }} Overdue
+    </span>
+    {% endif %}
+    {% if due_soon_count > 0 %}
+    <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+      <i class="bi bi-clock me-1"></i>{{ due_soon_count }} Due Soon
+    </span>
+    {% endif %}
+    <button class="btn btn-sm btn-outline-primary" id="enable-notif">
+      <i class="bi bi-bell me-1"></i>Enable Browser Alerts
+    </button>
+  </div>
+</div>
+
+{% if not payment_info %}
+<div class="empty-state text-center py-5">
+  <i class="bi bi-bell-slash display-3 text-muted"></i>
+  <h5 class="mt-3 fw-semibold">No cards to track</h5>
+  <p class="text-muted">Add credit cards to monitor payment due dates.</p>
+  <a href="{{ url_for('add_card') }}" class="btn btn-primary">Add Card</a>
+</div>
+{% else %}
+
+<!-- Summary timeline -->
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-calendar3 me-2 text-primary"></i>Payment Timeline
+  </div>
+  <div class="card-body p-0">
+    <div class="payment-timeline">
+      {% for p in payment_info %}
+      <div class="timeline-item border-start border-4 border-{{ p.urgency }} ps-3 py-3 ms-4 mb-2 position-relative">
+        <div class="timeline-dot bg-{{ p.urgency }}"></div>
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+          <div>
+            <div class="fw-bold">{{ p.card.card_name }}
+              <span class="text-muted fw-normal small">– {{ p.card.bank_name }}</span>
+            </div>
+            <div class="text-muted small">
+              Due <strong>{{ p.due_date.strftime('%d %B %Y') }}</strong>
+              &bull; {{ p.card.payment_due_day }}<sup>th</sup> every month
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-{{ p.urgency }} rounded-pill px-3 py-2">
+              {% if p.days_until_due < 0 %}
+                Overdue by {{ -p.days_until_due }} day(s)
+              {% elif p.days_until_due == 0 %}
+                Due Today!
+              {% else %}
+                {{ p.label }}
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Per-card details -->
+{% for p in payment_info %}
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex align-items-center justify-content-between
+              {% if p.days_until_due < 0 %}bg-danger text-white
+              {% elif p.days_until_due <= 3 %}bg-warning text-dark
+              {% elif p.days_until_due <= 7 %}bg-warning bg-opacity-25
+              {% endif %}">
+    <div class="d-flex align-items-center gap-3">
+      <div class="card-badge-icon rounded"
+           style="background:{{ p.card.card_color }}; width:32px; height:32px;
+                  display:flex; align-items:center; justify-content:center;">
+        <i class="bi bi-credit-card-fill text-white small"></i>
+      </div>
+      <div>
+        <div class="fw-bold">{{ p.card.card_name }}</div>
+        <div class="small {% if p.days_until_due < 0 %}text-white-50{% else %}text-muted{% endif %}">
+          {{ p.card.bank_name }}
+        </div>
+      </div>
+    </div>
+    <div class="text-end">
+      <div class="fw-bold">{{ p.due_date.strftime('%d %b %Y') }}</div>
+      <span class="badge bg-{{ p.urgency }}">{{ p.label }}</span>
+    </div>
+  </div>
+
+  <div class="card-body">
+    <div class="row g-3 mb-3">
+      <div class="col-sm-3 text-center">
+        <div class="stat-mini">
+          <div class="stat-mini-val {% if p.days_until_due<=3 %}text-danger{% elif p.days_until_due<=7 %}text-warning{% endif %}">
+            {% if p.days_until_due < 0 %}
+              <i class="bi bi-exclamation-triangle-fill"></i>
+            {% else %}
+              {{ p.days_until_due }}d
+            {% endif %}
+          </div>
+          <div class="stat-mini-lbl">Days Left</div>
+        </div>
+      </div>
+      <div class="col-sm-3 text-center">
+        <div class="stat-mini">
+          <div class="stat-mini-val">₹{{ "{:,.0f}".format(p.card.get_current_balance()) }}</div>
+          <div class="stat-mini-lbl">Current Balance</div>
+        </div>
+      </div>
+      <div class="col-sm-3 text-center">
+        <div class="stat-mini">
+          <div class="stat-mini-val">{{ p.card.get_utilization() }}%</div>
+          <div class="stat-mini-lbl">Utilization</div>
+        </div>
+      </div>
+      <div class="col-sm-3 text-center">
+        <div class="stat-mini">
+          <div class="stat-mini-val">{{ p.unpaid_stmts|length }}</div>
+          <div class="stat-mini-lbl">Unpaid Stmts</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Unpaid statements -->
+    {% if p.unpaid_stmts %}
+    <h6 class="fw-semibold mb-2">Unpaid Statements</h6>
+    <div class="table-responsive mb-3">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Statement Date</th>
+            <th>Due Date</th>
+            <th>Total Amount</th>
+            <th>Min. Pay</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for stmt in p.unpaid_stmts %}
+          <tr class="{% if (stmt.due_date - today).days < 0 %}table-danger{% elif (stmt.due_date - today).days <= 3 %}table-warning{% endif %}">
+            <td>{{ stmt.statement_date.strftime('%d %b %Y') }}</td>
+            <td>
+              {{ stmt.due_date.strftime('%d %b %Y') }}
+              {% set dl = (stmt.due_date - today).days %}
+              {% if dl < 0 %}
+                <span class="badge bg-danger">{{ -dl }}d overdue</span>
+              {% elif dl <= 3 %}
+                <span class="badge bg-warning text-dark">{{ dl }}d left</span>
+              {% endif %}
+            </td>
+            <td class="fw-bold">₹{{ "{:,.2f}".format(stmt.total_amount) }}</td>
+            <td class="text-muted">₹{{ "{:,.0f}".format(stmt.minimum_payment) }}</td>
+            <td>
+              <form method="POST" action="{{ url_for('mark_paid', stmt_id=stmt.id) }}">
+                <button class="btn btn-sm btn-success">
+                  <i class="bi bi-check2 me-1"></i>Mark Paid
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="alert alert-success py-2 mb-3">
+      <i class="bi bi-check-circle-fill me-2"></i>
+      No unpaid statements – you're all caught up!
+    </div>
+    {% endif %}
+
+    <!-- Add statement shortcut -->
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('add_statement', card_id=p.card.id) }}"
+         class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-plus me-1"></i>Add Statement
+      </a>
+      <a href="{{ url_for('card_detail', card_id=p.card.id) }}"
+         class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-eye me-1"></i>View Card
+      </a>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Browser notification support
+const enableBtn = document.getElementById('enable-notif');
+if (enableBtn) {
+  enableBtn.addEventListener('click', async () => {
+    if (!('Notification' in window)) {
+      alert('Browser notifications are not supported in your browser.');
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      // Fetch upcoming payments and show notifications
+      const resp = await fetch('/api/upcoming-payments');
+      const payments = await resp.json();
+      let shown = 0;
+      for (const p of payments) {
+        if (p.days_until_due <= 7) {
+          new Notification(`CardIQ: ${p.card_name} payment due`, {
+            body: `${p.days_until_due <= 0 ? 'OVERDUE!' : p.days_until_due + ' day(s) left'} – Due ${p.due_date}`,
+            icon: '/static/img/icon.png',
+            tag: `due-${p.card_name}`,
+          });
+          shown++;
+        }
+      }
+      if (shown === 0) {
+        new Notification('CardIQ: All clear!', {
+          body: 'No payments due within the next 7 days.',
+        });
+      }
+      enableBtn.textContent = 'Alerts Enabled';
+      enableBtn.classList.replace('btn-outline-primary', 'btn-primary');
+    }
+  });
+}
+</script>
+{% endblock %}

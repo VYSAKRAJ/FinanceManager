@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}Add Transaction – CardIQ{% endblock %}
+{% block page_title %}Add Transaction{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+  <h4 class="fw-bold mb-0"><i class="bi bi-plus-circle-fill me-2 text-success"></i>Add Transaction</h4>
+  <p class="text-muted small mb-0">Log a credit card transaction manually.</p>
+</div>
+
+{% if not cards %}
+<div class="alert alert-warning">
+  <i class="bi bi-exclamation-triangle me-2"></i>
+  You need to <a href="{{ url_for('add_card') }}">add a card</a> before logging transactions.
+</div>
+{% else %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <form method="POST" novalidate>
+          <input type="hidden" name="next" value="{{ request.referrer or '' }}">
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Card <span class="text-danger">*</span></label>
+            <select class="form-select" name="card_id" required>
+              <option value="">Select card…</option>
+              {% for c in cards %}
+              <option value="{{ c.id }}"
+                {{ 'selected' if preselect and preselect == c.id else '' }}>
+                {{ c.card_name }} – {{ c.bank_name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Merchant / Description <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="merchant" id="merchant-inp"
+                   placeholder="e.g. Zomato, Amazon, BigBasket…" required>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Amount (₹) <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text">₹</span>
+                <input type="number" class="form-control" name="amount"
+                       min="0.01" step="0.01" placeholder="0.00" required>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Date <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" name="transaction_date"
+                     value="{{ today }}" max="{{ today }}" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Category</label>
+            <div class="row g-2" id="category-buttons">
+              {% for cat in categories %}
+              <div class="col-6 col-sm-4 col-md-3">
+                <input type="radio" class="btn-check" name="category" id="cat_{{ cat }}"
+                       value="{{ cat }}" autocomplete="off">
+                <label class="btn btn-outline-secondary w-100 btn-sm cat-btn" for="cat_{{ cat }}">
+                  <i class="bi bi-{{ loop.cycle('cup-hot-fill','airplane-fill','cart-fill','fuel-pump-fill','film','bag-fill','lightning-charge-fill','heart-pulse-fill','book-fill','three-dots') }} me-1"></i>
+                  {{ cat|capitalize }}
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+            <div class="form-text">Category will be auto-detected if not selected.</div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Notes (optional)</label>
+            <textarea class="form-control" name="description" rows="2"
+                      placeholder="Any additional notes…"></textarea>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success px-4">
+              <i class="bi bi-check-lg me-1"></i>Save Transaction
+            </button>
+            <a href="{{ request.referrer or url_for('index') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-detect category from merchant name
+const merchantInp = document.getElementById('merchant-inp');
+const keywords = {
+  dining:        ['restaurant','food','cafe','coffee','pizza','burger','sushi','swiggy','zomato','eat','kitchen','bakery'],
+  travel:        ['airline','hotel','flight','booking','airbnb','uber','ola','taxi','train','bus','metro','irctc','indigo'],
+  grocery:       ['grocery','supermarket','bigbasket','grofers','blinkit','dmart','reliance fresh','jiomart'],
+  fuel:          ['fuel','petrol','diesel','shell','hp','hpcl','bpcl','iocl','indian oil'],
+  entertainment: ['netflix','prime video','hotstar','spotify','movie','cinema','pvr','inox','bookmyshow'],
+  shopping:      ['amazon','flipkart','myntra','ajio','nykaa','meesho','mall','store','shop'],
+  utilities:     ['electricity','broadband','airtel','jio','vodafone','bsnl','vi ','power','gas','recharge'],
+  healthcare:    ['hospital','pharmacy','medical','doctor','clinic','health','apollo','fortis','medplus','1mg'],
+  education:     ['school','college','course','udemy','coursera','byju','unacademy','tuition','coaching'],
+};
+if (merchantInp) {
+  merchantInp.addEventListener('input', function() {
+    const val = this.value.toLowerCase();
+    let matched = 'other';
+    for (const [cat, kws] of Object.entries(keywords)) {
+      if (kws.some(kw => val.includes(kw))) { matched = cat; break; }
+    }
+    const radio = document.getElementById('cat_' + matched);
+    if (radio) radio.checked = true;
+  });
+}
+</script>
+{% endblock %}

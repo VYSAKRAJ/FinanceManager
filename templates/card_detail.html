@@ -1,0 +1,332 @@
+{% extends 'base.html' %}
+{% block title %}{{ card.card_name }} – CardIQ{% endblock %}
+{% block page_title %}{{ card.card_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-bold mb-0">
+      <i class="bi bi-credit-card-fill me-2 text-primary"></i>{{ card.card_name }}
+    </h4>
+    <span class="text-muted small">{{ card.bank_name }} &bull; {{ card.card_type }}</span>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('add_transaction', card_id=card.id) }}" class="btn btn-success btn-sm">
+      <i class="bi bi-plus me-1"></i>Transaction
+    </a>
+    <a href="{{ url_for('add_statement', card_id=card.id) }}" class="btn btn-secondary btn-sm">
+      <i class="bi bi-file-plus me-1"></i>Statement
+    </a>
+    <a href="{{ url_for('edit_card', card_id=card.id) }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-pencil me-1"></i>Edit
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- Left: Card widget + stats -->
+  <div class="col-lg-4">
+
+    <!-- Card visual -->
+    <div class="credit-card-widget mb-4"
+         style="background: linear-gradient(135deg, {{ card.card_color }}, {{ card.card_color }}99);">
+      <div class="card-chip"><i class="bi bi-cpu-fill"></i></div>
+      <div class="card-number">**** **** **** {{ card.card_number_last4 if card.card_number_last4 else '••••' }}</div>
+      <div class="card-footer-row">
+        <div>
+          <div class="card-label">Card Name</div>
+          <div class="card-value">{{ card.card_name }}</div>
+        </div>
+        <div class="text-end">
+          <div class="card-label">Bank</div>
+          <div class="card-value">{{ card.bank_name }}</div>
+        </div>
+      </div>
+      <div class="card-util-bar mt-2">
+        <div class="d-flex justify-content-between small mb-1">
+          <span>Utilization {{ card.get_utilization() }}%</span>
+          <span>₹{{ "{:,.0f}".format(card.available_credit()) }} available</span>
+        </div>
+        <div class="progress" style="height:4px;">
+          {% set util = card.get_utilization() %}
+          <div class="progress-bar {% if util>80 %}bg-danger{% elif util>50 %}bg-warning{% else %}bg-success{% endif %}"
+               style="width:{{ util }}%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <div class="row g-3 text-center">
+          <div class="col-6">
+            <div class="stat-mini">
+              <div class="stat-mini-val">₹{{ "{:,.0f}".format(card.credit_limit) }}</div>
+              <div class="stat-mini-lbl">Credit Limit</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="stat-mini">
+              <div class="stat-mini-val">₹{{ "{:,.0f}".format(card.get_current_balance()) }}</div>
+              <div class="stat-mini-lbl">Current Balance</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="stat-mini">
+              {% set dd = card.get_next_due_date() %}
+              {% set days = (dd - today).days %}
+              <div class="stat-mini-val {% if days<=3 %}text-danger{% elif days<=7 %}text-warning{% endif %}">
+                {{ dd.strftime('%d %b') }}
+              </div>
+              <div class="stat-mini-lbl">Next Due Date</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="stat-mini">
+              <div class="stat-mini-val">₹{{ "{:,.0f}".format(card.annual_fee) }}</div>
+              <div class="stat-mini-lbl">Annual Fee</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reward rates -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-stars me-2 text-warning"></i>Reward Rates
+      </div>
+      <ul class="list-group list-group-flush">
+        {% set reward_list = [
+          ('Dining',        'cup-hot-fill',         card.reward_dining),
+          ('Travel',        'airplane-fill',         card.reward_travel),
+          ('Grocery',       'cart-fill',             card.reward_grocery),
+          ('Fuel',          'fuel-pump-fill',        card.reward_fuel),
+          ('Entertainment', 'film',                  card.reward_entertainment),
+          ('Shopping',      'bag-fill',              card.reward_shopping),
+          ('Utilities',     'lightning-charge-fill', card.reward_utilities),
+          ('Healthcare',    'heart-pulse-fill',      card.reward_healthcare),
+          ('Education',     'book-fill',             card.reward_education),
+          ('Other',         'three-dots',            card.reward_other),
+        ] %}
+        {% for label, icon, rate in reward_list %}
+        <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+          <span class="small"><i class="bi bi-{{ icon }} me-2 text-muted"></i>{{ label }}</span>
+          <span class="badge {% if rate >= 5 %}bg-success{% elif rate >= 2 %}bg-primary{% else %}bg-secondary{% endif %} rounded-pill">
+            {{ rate }}%
+          </span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    {% if card.notes %}
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <p class="small text-muted mb-0"><i class="bi bi-sticky me-2"></i>{{ card.notes }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+  </div><!-- /left -->
+
+  <!-- Right: Transactions + Statements -->
+  <div class="col-lg-8">
+
+    <!-- Spending by category chart -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-pie-chart-fill me-2 text-info"></i>Spending by Category
+      </div>
+      <div class="card-body">
+        {% set total_cat = cat_spending.values() | sum %}
+        {% if total_cat > 0 %}
+        <div class="row align-items-center">
+          <div class="col-md-5">
+            <canvas id="catChart" height="200"></canvas>
+          </div>
+          <div class="col-md-7">
+            {% for cat in categories %}
+            {% if cat_spending[cat] > 0 %}
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <div class="d-flex align-items-center">
+                <span class="cat-dot me-2" style="background:{{ category_colors[cat] }}"></span>
+                <span class="small text-capitalize">{{ cat }}</span>
+              </div>
+              <div class="text-end">
+                <span class="small fw-semibold">₹{{ "{:,.0f}".format(cat_spending[cat]) }}</span>
+                <span class="text-muted small ms-1">({{ (cat_spending[cat]/total_cat*100)|round(1) }}%)</span>
+              </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+        {% else %}
+        <p class="text-muted text-center mb-0">No transactions yet.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Statements -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold"><i class="bi bi-file-earmark-text me-2 text-secondary"></i>Statements</span>
+        <a href="{{ url_for('add_statement', card_id=card.id) }}" class="btn btn-sm btn-outline-secondary">
+          + Add
+        </a>
+      </div>
+      {% if statements %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Statement Date</th>
+              <th>Due Date</th>
+              <th>Amount</th>
+              <th>Min. Pay</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for stmt in statements %}
+            <tr>
+              <td>{{ stmt.statement_date.strftime('%d %b %Y') }}</td>
+              <td>
+                {{ stmt.due_date.strftime('%d %b %Y') }}
+                {% if not stmt.paid %}
+                {% set days_left = (stmt.due_date - today).days %}
+                {% if days_left < 0 %}
+                  <span class="badge bg-danger ms-1">Overdue</span>
+                {% elif days_left <= 3 %}
+                  <span class="badge bg-warning ms-1">{{ days_left }}d left</span>
+                {% endif %}
+                {% endif %}
+              </td>
+              <td class="fw-semibold">₹{{ "{:,.2f}".format(stmt.total_amount) }}</td>
+              <td class="text-muted small">₹{{ "{:,.0f}".format(stmt.minimum_payment) }}</td>
+              <td>
+                {% if stmt.paid %}
+                <span class="badge bg-success">Paid {{ stmt.paid_date.strftime('%d %b') if stmt.paid_date else '' }}</span>
+                {% else %}
+                <span class="badge bg-warning text-dark">Unpaid</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if not stmt.paid %}
+                <form method="POST" action="{{ url_for('mark_paid', stmt_id=stmt.id) }}" class="d-inline">
+                  <button class="btn btn-xs btn-success">Pay</button>
+                </form>
+                {% else %}
+                <form method="POST" action="{{ url_for('mark_unpaid', stmt_id=stmt.id) }}" class="d-inline">
+                  <button class="btn btn-xs btn-outline-secondary">Undo</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body text-center text-muted py-3">
+        No statements recorded. <a href="{{ url_for('add_statement', card_id=card.id) }}">Add one</a>.
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Transactions -->
+    <div class="card shadow-sm">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold"><i class="bi bi-receipt me-2 text-primary"></i>Transactions ({{ transactions|length }})</span>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('upload_bill') }}?card_id={{ card.id }}" class="btn btn-sm btn-outline-info">
+            <i class="bi bi-upload me-1"></i>Upload CSV
+          </a>
+          <a href="{{ url_for('add_transaction', card_id=card.id) }}" class="btn btn-sm btn-outline-success">
+            + Add
+          </a>
+        </div>
+      </div>
+      {% if transactions %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 txn-table">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Category</th>
+              <th>Merchant</th>
+              <th>Date</th>
+              <th class="text-end pe-3">Amount</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for txn in transactions %}
+            <tr>
+              <td class="ps-3">
+                <span class="cat-icon" style="background:{{ category_colors[txn.category] }}20; color:{{ category_colors[txn.category] }}">
+                  <i class="bi {{ category_icons[txn.category] }}"></i>
+                </span>
+                <span class="small text-capitalize ms-1">{{ txn.category }}</span>
+              </td>
+              <td>
+                <div class="fw-semibold small">{{ txn.merchant }}</div>
+                {% if txn.description %}
+                <div class="text-muted" style="font-size:.72rem;">{{ txn.description }}</div>
+                {% endif %}
+              </td>
+              <td class="text-muted small">{{ txn.transaction_date.strftime('%d %b %Y') }}</td>
+              <td class="text-end pe-3 fw-semibold">₹{{ "{:,.2f}".format(txn.amount) }}</td>
+              <td>
+                <form method="POST" action="{{ url_for('delete_transaction', txn_id=txn.id) }}"
+                      onsubmit="return confirm('Delete this transaction?')">
+                  <button class="btn btn-xs btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body text-center text-muted py-3">
+        No transactions yet.
+        <a href="{{ url_for('add_transaction', card_id=card.id) }}">Add one</a> or
+        <a href="{{ url_for('upload_bill') }}">upload a CSV bill</a>.
+      </div>
+      {% endif %}
+    </div>
+
+  </div><!-- /right -->
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+{% set total_cat = cat_spending.values() | sum %}
+{% if total_cat > 0 %}
+const catCtx = document.getElementById('catChart');
+if (catCtx) {
+  new Chart(catCtx, {
+    type: 'doughnut',
+    data: {
+      labels: [{% for cat in categories %}{% if cat_spending[cat] > 0 %}'{{ cat|capitalize }}',{% endif %}{% endfor %}],
+      datasets: [{
+        data:            [{% for cat in categories %}{% if cat_spending[cat] > 0 %}{{ cat_spending[cat] }},{% endif %}{% endfor %}],
+        backgroundColor: [{% for cat in categories %}{% if cat_spending[cat] > 0 %}'{{ category_colors[cat] }}',{% endif %}{% endfor %}],
+        borderWidth: 2,
+        borderColor: '#fff',
+      }]
+    },
+    options: {
+      cutout: '65%',
+      plugins: { legend: { display: false } },
+    }
+  });
+}
+{% endif %}
+</script>
+{% endblock %}

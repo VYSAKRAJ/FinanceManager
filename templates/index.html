@@ -1,0 +1,263 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard – CardIQ{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+  <h4 class="fw-bold mb-0"><i class="bi bi-speedometer2 me-2 text-primary"></i>Dashboard</h4>
+  <p class="text-muted small mb-0">Welcome back! Here's your credit card overview.</p>
+</div>
+
+<!-- Summary KPI cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-icon bg-primary-soft text-primary"><i class="bi bi-credit-card-2-front-fill"></i></div>
+      <div>
+        <div class="kpi-value">{{ cards|length }}</div>
+        <div class="kpi-label">Total Cards</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-icon bg-success-soft text-success"><i class="bi bi-currency-rupee"></i></div>
+      <div>
+        <div class="kpi-value">₹{{ "{:,.0f}".format(total_spending) }}</div>
+        <div class="kpi-label">This Month's Spend</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card">
+      {% set overdue = upcoming_payments | selectattr('days_until_due', 'lt', 0) | list %}
+      <div class="kpi-icon {% if overdue %}bg-danger-soft text-danger{% else %}bg-warning-soft text-warning{% endif %}">
+        <i class="bi bi-bell-fill"></i>
+      </div>
+      <div>
+        <div class="kpi-value">{{ upcoming_payments | selectattr('days_until_due', 'le', 7) | list | length }}</div>
+        <div class="kpi-label">Due in 7 Days</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-icon bg-info-soft text-info"><i class="bi bi-receipt"></i></div>
+      <div>
+        <div class="kpi-value">{{ recent_txns | length }}</div>
+        <div class="kpi-label">Recent Transactions</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if not cards %}
+<!-- Empty state -->
+<div class="empty-state text-center py-5">
+  <i class="bi bi-credit-card-2-front display-3 text-muted"></i>
+  <h5 class="mt-3 fw-semibold">No cards yet</h5>
+  <p class="text-muted">Add your first credit card to get started.</p>
+  <a href="{{ url_for('add_card') }}" class="btn btn-primary px-4">
+    <i class="bi bi-plus-lg me-1"></i> Add My First Card
+  </a>
+</div>
+{% else %}
+
+<div class="row g-4">
+
+  <!-- Left column -->
+  <div class="col-lg-8">
+
+    <!-- Payment Due Alerts -->
+    {% set urgent = upcoming_payments | selectattr('days_until_due', 'le', 7) | list %}
+    {% if urgent %}
+    <div class="card shadow-sm mb-4">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Upcoming Payments</span>
+        <a href="{{ url_for('notifications') }}" class="btn btn-sm btn-outline-secondary">View All</a>
+      </div>
+      <div class="card-body p-0">
+        {% for p in urgent %}
+        <div class="payment-alert-row border-start border-4 border-{{ p.urgency }} px-3 py-2">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <span class="fw-semibold">{{ p.card.card_name }}</span>
+              <span class="text-muted small ms-2">{{ p.card.bank_name }}</span>
+              <span class="badge bg-{{ p.urgency }} ms-2">{{ p.label }}</span>
+            </div>
+            <div class="text-end">
+              {% if p.amount %}
+              <div class="fw-bold text-{{ p.urgency }}">₹{{ "{:,.0f}".format(p.amount) }}</div>
+              {% endif %}
+              <div class="text-muted small">Due {{ p.due_date.strftime('%d %b') }}</div>
+            </div>
+          </div>
+          {% if p.statement_id %}
+          <form method="POST" action="{{ url_for('mark_paid', stmt_id=p.statement_id) }}" class="d-inline mt-1">
+            <button class="btn btn-xs btn-success">
+              <i class="bi bi-check2 me-1"></i>Mark Paid
+            </button>
+          </form>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- My Cards -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold"><i class="bi bi-credit-card-fill text-primary me-2"></i>My Cards</span>
+        <a href="{{ url_for('cards') }}" class="btn btn-sm btn-outline-primary">Manage</a>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          {% for card in cards %}
+          <div class="col-md-6">
+            <a href="{{ url_for('card_detail', card_id=card.id) }}" class="text-decoration-none">
+              <div class="credit-card-widget" style="background: linear-gradient(135deg, {{ card.card_color }}, {{ card.card_color }}cc);">
+                <div class="card-chip"><i class="bi bi-cpu-fill"></i></div>
+                <div class="card-number">
+                  **** **** **** {{ card.card_number_last4 if card.card_number_last4 else '••••' }}
+                </div>
+                <div class="card-footer-row">
+                  <div>
+                    <div class="card-label">Card Name</div>
+                    <div class="card-value">{{ card.card_name }}</div>
+                  </div>
+                  <div class="text-end">
+                    <div class="card-label">Bank</div>
+                    <div class="card-value">{{ card.bank_name }}</div>
+                  </div>
+                </div>
+                <div class="card-util-bar mt-2">
+                  <div class="d-flex justify-content-between small mb-1">
+                    <span>Utilization {{ card.get_utilization() }}%</span>
+                    <span>₹{{ "{:,.0f}".format(card.get_current_balance()) }} / ₹{{ "{:,.0f}".format(card.credit_limit) }}</span>
+                  </div>
+                  <div class="progress" style="height:4px;">
+                    {% set util = card.get_utilization() %}
+                    <div class="progress-bar {% if util > 80 %}bg-danger{% elif util > 50 %}bg-warning{% else %}bg-success{% endif %}"
+                         style="width:{{ util }}%"></div>
+                  </div>
+                </div>
+              </div>
+            </a>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="card shadow-sm">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold"><i class="bi bi-receipt text-info me-2"></i>Recent Transactions</span>
+        <a href="{{ url_for('add_transaction') }}" class="btn btn-sm btn-outline-info">+ Add</a>
+      </div>
+      {% if recent_txns %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 txn-table">
+          <tbody>
+            {% for txn in recent_txns %}
+            <tr>
+              <td class="ps-3">
+                <span class="cat-icon" style="background:{{ category_colors[txn.category] }}20; color:{{ category_colors[txn.category] }}">
+                  <i class="bi {{ category_icons[txn.category] }}"></i>
+                </span>
+              </td>
+              <td>
+                <div class="fw-semibold">{{ txn.merchant }}</div>
+                <div class="text-muted small">{{ txn.card.card_name }}</div>
+              </td>
+              <td class="text-muted small">{{ txn.transaction_date.strftime('%d %b %Y') }}</td>
+              <td class="text-end pe-3 fw-semibold">₹{{ "{:,.2f}".format(txn.amount) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body text-center text-muted py-4">
+        <i class="bi bi-inbox fs-3"></i>
+        <p class="mt-2 mb-0">No transactions yet. <a href="{{ url_for('add_transaction') }}">Add one</a>.</p>
+      </div>
+      {% endif %}
+    </div>
+
+  </div><!-- /left -->
+
+  <!-- Right column -->
+  <div class="col-lg-4">
+
+    <!-- Quick Actions -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-lightning-fill text-warning me-2"></i>Quick Actions
+      </div>
+      <div class="card-body d-grid gap-2">
+        <a href="{{ url_for('recommendations') }}" class="btn btn-outline-primary">
+          <i class="bi bi-stars me-2"></i>Which card should I use?
+        </a>
+        <a href="{{ url_for('add_transaction') }}" class="btn btn-outline-success">
+          <i class="bi bi-plus-circle me-2"></i>Log a Transaction
+        </a>
+        <a href="{{ url_for('upload_bill') }}" class="btn btn-outline-info">
+          <i class="bi bi-upload me-2"></i>Upload Bill (CSV)
+        </a>
+        <a href="{{ url_for('add_statement') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-file-earmark-plus me-2"></i>Add Statement
+        </a>
+      </div>
+    </div>
+
+    <!-- Monthly spend per card -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-pie-chart-fill text-success me-2"></i>This Month's Spend
+      </div>
+      <div class="card-body">
+        {% for cs in card_spending %}
+        {% if cs.spending > 0 %}
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small mb-1">
+            <span class="fw-semibold">{{ cs.card.card_name }}</span>
+            <span>₹{{ "{:,.0f}".format(cs.spending) }}</span>
+          </div>
+          <div class="progress" style="height:6px;">
+            {% set pct = (cs.spending / total_spending * 100) if total_spending > 0 else 0 %}
+            <div class="progress-bar" style="width:{{ pct }}%; background:{{ cs.card.card_color }}"></div>
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        {% if total_spending == 0 %}
+        <p class="text-muted small mb-0 text-center">No transactions this month.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- All payment due dates -->
+    <div class="card shadow-sm">
+      <div class="card-header d-flex justify-content-between fw-semibold">
+        <span><i class="bi bi-calendar3 text-danger me-2"></i>Payment Calendar</span>
+        <a href="{{ url_for('notifications') }}" class="btn btn-sm btn-outline-danger">All</a>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for p in upcoming_payments %}
+        <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+          <div>
+            <div class="fw-semibold small">{{ p.card.card_name }}</div>
+            <div class="text-muted" style="font-size:.75rem;">{{ p.due_date.strftime('%d %b %Y') }}</div>
+          </div>
+          <span class="badge rounded-pill bg-{{ p.urgency }}">{{ p.label }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+  </div><!-- /right -->
+</div><!-- /row -->
+{% endif %}
+{% endblock %}

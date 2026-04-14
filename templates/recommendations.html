@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% block title %}Card Advisor – CardIQ{% endblock %}
+{% block page_title %}Card Advisor{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+  <h4 class="fw-bold mb-0"><i class="bi bi-stars me-2 text-warning"></i>Smart Card Advisor</h4>
+  <p class="text-muted small mb-0">Tell us what you're buying and we'll recommend the best card to use.</p>
+</div>
+
+{% if not has_cards %}
+<div class="alert alert-info">
+  <i class="bi bi-info-circle me-2"></i>
+  You need to <a href="{{ url_for('add_card') }}">add credit cards</a> with their reward rates before using the advisor.
+</div>
+{% else %}
+
+<!-- Input form -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body p-4">
+    <form method="POST" class="row g-3 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label fw-semibold">Spending Category</label>
+        <div class="row g-2" id="rec-cat-buttons">
+          {% for cat in categories %}
+          <div class="col-6 col-sm-4 col-md-6 col-lg-4">
+            <input type="radio" class="btn-check" name="category" id="rcat_{{ cat }}"
+                   value="{{ cat }}" autocomplete="off"
+                   {{ 'checked' if selected_category == cat else '' }}>
+            <label class="btn btn-outline-secondary w-100 btn-sm cat-btn" for="rcat_{{ cat }}">
+              <i class="bi bi-{{ category_icons[cat] }} me-1"></i>{{ cat|capitalize }}
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Transaction Amount (₹)</label>
+        <div class="input-group">
+          <span class="input-group-text">₹</span>
+          <input type="number" class="form-control form-control-lg" name="amount"
+                 min="1" step="1" placeholder="500"
+                 value="{{ selected_amount if selected_amount else '' }}" required>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-warning btn-lg w-100 fw-semibold">
+          <i class="bi bi-stars me-2"></i>Find Best Card
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Results -->
+{% if results %}
+<h5 class="fw-bold mb-3">
+  Recommendations for <span class="text-primary">{{ selected_category|capitalize }}</span>
+  &bull; ₹{{ "{:,.0f}".format(selected_amount) }}
+</h5>
+
+<div class="row g-3">
+  {% for r in results %}
+  <div class="col-md-6 col-xl-4">
+    <div class="card shadow-sm h-100 {% if loop.first %}border-warning border-2{% endif %}">
+      {% if loop.first %}
+      <div class="card-header bg-warning text-dark fw-bold">
+        <i class="bi bi-trophy-fill me-2"></i>Best Pick
+      </div>
+      {% elif loop.index == 2 %}
+      <div class="card-header bg-light fw-semibold text-secondary">
+        <i class="bi bi-award-fill me-2"></i>Runner Up
+      </div>
+      {% else %}
+      <div class="card-header bg-light fw-semibold text-secondary small">
+        Option {{ loop.index }}
+      </div>
+      {% endif %}
+
+      <div class="card-body">
+        <!-- Mini card visual -->
+        <div class="rec-card-mini mb-3"
+             style="background:linear-gradient(135deg, {{ r.card.card_color }}, {{ r.card.card_color }}99);">
+          <div class="fw-bold">{{ r.card.card_name }}</div>
+          <div class="small opacity-75">{{ r.card.bank_name }}</div>
+        </div>
+
+        <!-- Reward highlight -->
+        <div class="text-center mb-3">
+          <div class="reward-highlight {% if loop.first %}bg-warning-soft{% else %}bg-light{% endif %} rounded p-3">
+            <div class="display-6 fw-bold text-success">₹{{ "{:,.2f}".format(r.reward_value) }}</div>
+            <div class="text-muted small">Estimated reward value</div>
+            <div class="badge bg-success mt-1">{{ r.reward_rate }}% on {{ selected_category }}</div>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="row g-2 text-center mb-3">
+          <div class="col-6">
+            <div class="stat-mini">
+              <div class="stat-mini-val {% if r.utilization > 75 %}text-danger{% elif r.utilization > 50 %}text-warning{% else %}text-success{% endif %}">
+                {{ r.utilization }}%
+              </div>
+              <div class="stat-mini-lbl">Utilization</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="stat-mini">
+              <div class="stat-mini-val">{{ r.days_to_due }}d</div>
+              <div class="stat-mini-lbl">Until Due</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reasons -->
+        {% if r.reasons %}
+        <ul class="list-unstyled small mb-0">
+          {% for reason in r.reasons %}
+          <li class="mb-1">
+            <i class="bi bi-{% if 'Insufficient' in reason or 'high' in reason|lower or 'urgent' in reason|lower %}exclamation-circle text-danger{% elif 'soon' in reason|lower %}exclamation-triangle text-warning{% else %}check-circle text-success{% endif %} me-1"></i>
+            {{ reason }}
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+
+      {% if loop.first %}
+      <div class="card-footer bg-transparent">
+        <a href="{{ url_for('add_transaction') }}?card_id={{ r.card.id }}"
+           class="btn btn-warning w-100 fw-semibold">
+          <i class="bi bi-plus-lg me-1"></i>Log this Transaction
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% elif selected_category %}
+<div class="alert alert-warning">
+  <i class="bi bi-exclamation-triangle me-2"></i>
+  No cards have sufficient credit for this transaction, or no cards are set up.
+  <a href="{{ url_for('add_card') }}">Add a card</a>.
+</div>
+{% endif %}
+
+<!-- How it works -->
+<div class="card shadow-sm mt-4">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-lightbulb-fill text-warning me-2"></i>How the Advisor Works
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-3 text-center">
+        <div class="fs-2 text-warning mb-1"><i class="bi bi-stars"></i></div>
+        <div class="fw-semibold small">Reward Analysis</div>
+        <div class="text-muted" style="font-size:.8rem;">Compares cashback % per category across all your cards</div>
+      </div>
+      <div class="col-md-3 text-center">
+        <div class="fs-2 text-info mb-1"><i class="bi bi-graph-up"></i></div>
+        <div class="fw-semibold small">Utilization Score</div>
+        <div class="text-muted" style="font-size:.8rem;">Penalises cards already near their credit limit</div>
+      </div>
+      <div class="col-md-3 text-center">
+        <div class="fs-2 text-danger mb-1"><i class="bi bi-calendar-event"></i></div>
+        <div class="fw-semibold small">Due Date Awareness</div>
+        <div class="text-muted" style="font-size:.8rem;">Discourages use when payment is due very soon</div>
+      </div>
+      <div class="col-md-3 text-center">
+        <div class="fs-2 text-success mb-1"><i class="bi bi-shield-check"></i></div>
+        <div class="fw-semibold small">Credit Availability</div>
+        <div class="text-muted" style="font-size:.8rem;">Only shows cards with enough available credit</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}

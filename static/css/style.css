@@ -1,0 +1,406 @@
+/* ============================================================
+   CardIQ – Global Styles
+   ============================================================ */
+
+:root {
+  --sidebar-width: 240px;
+  --topbar-height: 56px;
+  --primary: #6366f1;
+  --primary-light: #eef2ff;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  --body-bg: #f1f5f9;
+  --card-bg: #ffffff;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --sidebar-bg: #1e293b;
+  --sidebar-text: #cbd5e1;
+  --sidebar-active: #6366f1;
+  --topbar-bg: #ffffff;
+}
+
+/* Base */
+body {
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  background: var(--body-bg);
+  color: #1e293b;
+  font-size: 0.9rem;
+}
+
+/* ── Sidebar ────────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-width);
+  min-height: 100vh;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  flex-shrink: 0;
+  transition: width 0.25s ease;
+  z-index: 100;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  padding: 1.1rem 1.25rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  letter-spacing: -0.3px;
+}
+
+.sidebar .nav-link {
+  color: var(--sidebar-text);
+  padding: 0.55rem 1.25rem;
+  border-radius: 0.5rem;
+  margin: 2px 0.5rem;
+  font-size: 0.875rem;
+  transition: all 0.15s;
+}
+
+.sidebar .nav-link:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+
+.sidebar .nav-link.active {
+  background: var(--sidebar-active);
+  color: #fff;
+  font-weight: 600;
+}
+
+.sidebar-divider {
+  border-color: rgba(255,255,255,0.1);
+  margin: 0.5rem 1rem;
+}
+
+/* ── Topbar ─────────────────────────────────────────────── */
+.topbar {
+  background: var(--topbar-bg);
+  height: var(--topbar-height);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.sidebar-toggle {
+  border: none;
+  background: transparent;
+  color: #64748b;
+}
+.sidebar-toggle:hover { background: var(--body-bg); color: #1e293b; }
+
+/* ── Page layout ────────────────────────────────────────── */
+#wrapper {
+  min-height: 100vh;
+}
+#page-content-wrapper {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+/* ── Page header ────────────────────────────────────────── */
+.page-header { padding-top: 0.5rem; }
+
+/* ── KPI Cards ──────────────────────────────────────────── */
+.kpi-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  border: 1px solid var(--border-color);
+}
+
+.kpi-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.bg-primary-soft  { background: #eef2ff; }
+.bg-success-soft  { background: #f0fdf4; }
+.bg-warning-soft  { background: #fffbeb; }
+.bg-danger-soft   { background: #fef2f2; }
+.bg-info-soft     { background: #eff6ff; }
+
+.kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #1e293b;
+}
+.kpi-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ── Credit Card Widget ─────────────────────────────────── */
+.credit-card-widget {
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem 1rem;
+  color: white;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.credit-card-widget:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+}
+
+.credit-card-widget::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+}
+
+.card-chip {
+  font-size: 1.5rem;
+  opacity: 0.8;
+  margin-bottom: 0.75rem;
+}
+
+.card-number {
+  font-size: 1rem;
+  letter-spacing: 0.15em;
+  font-family: 'Courier New', monospace;
+  margin-bottom: 0.75rem;
+  opacity: 0.9;
+}
+
+.card-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.card-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.7;
+}
+
+.card-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.card-util-bar .progress { background: rgba(255,255,255,0.2); }
+
+/* Recommendation mini card */
+.rec-card-mini {
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  color: white;
+  font-size: 0.875rem;
+}
+
+/* ── Stat mini ──────────────────────────────────────────── */
+.stat-mini {
+  background: var(--body-bg);
+  border-radius: 8px;
+  padding: 0.6rem 0.5rem;
+}
+
+.stat-mini-val {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.stat-mini-lbl {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* ── Transaction table ──────────────────────────────────── */
+.txn-table thead th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.cat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.cat-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* ── Notification badge ─────────────────────────────────── */
+.notification-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background: var(--danger);
+  border-radius: 50%;
+}
+
+/* ── Payment alert row ──────────────────────────────────── */
+.payment-alert-row {
+  border-bottom: 1px solid var(--border-color);
+}
+.payment-alert-row:last-child { border-bottom: none; }
+
+/* ── Payment timeline ───────────────────────────────────── */
+.payment-timeline { padding: 1rem 1rem 1rem 0; }
+
+.timeline-item {
+  position: relative;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -22px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+/* ── Upload dropzone ────────────────────────────────────── */
+.upload-dropzone {
+  border: 2px dashed var(--border-color);
+  border-radius: 12px;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  transition: border-color 0.2s, background 0.2s;
+  cursor: pointer;
+}
+
+.upload-dropzone:hover,
+.upload-dropzone.dragover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+/* ── Color swatches ─────────────────────────────────────── */
+.color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.2);
+  border-color: #fff;
+  outline: 2px solid #64748b;
+}
+
+/* ── Reward highlight ───────────────────────────────────── */
+.reward-highlight { border-radius: 12px; }
+
+/* ── Category buttons ───────────────────────────────────── */
+.cat-btn { font-size: 0.78rem; padding: 0.3rem 0.4rem; }
+.btn-check:checked + .cat-btn {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+/* ── Buttons – extra small ──────────────────────────────── */
+.btn-xs {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 4px;
+}
+
+/* ── Cards ──────────────────────────────────────────────── */
+.card {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.card-header {
+  background: #fff;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.75rem 1rem;
+  border-radius: 12px 12px 0 0 !important;
+}
+
+/* ── Badge overrides ────────────────────────────────────── */
+.badge.bg-warning { color: #92400e !important; }
+
+/* ── Empty state ────────────────────────────────────────── */
+.empty-state { color: var(--text-muted); }
+
+/* ── Responsive sidebar ─────────────────────────────────── */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: -100%;
+    transition: left 0.25s ease;
+    z-index: 1045;
+  }
+  .sidebar.open {
+    left: 0;
+    box-shadow: 4px 0 16px rgba(0,0,0,0.3);
+  }
+  #page-content-wrapper {
+    width: 100%;
+  }
+}
+
+/* ── Scrollbar ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ── Utilities ──────────────────────────────────────────── */
+.fw-700 { font-weight: 700; }
+.text-xs { font-size: 0.75rem; }
+pre { font-size: 0.8rem; }
+
+/* ── Animated alert badges ──────────────────────────────── */
+@keyframes pulse-danger {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+}
+.badge.bg-danger { animation: pulse-danger 2s infinite; }
